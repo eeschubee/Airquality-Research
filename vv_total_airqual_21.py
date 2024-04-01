@@ -113,7 +113,7 @@ for i,df in enumerate(sensor_dfs):
    display(df.datetime_utc.min(),df.datetime_utc.max())
    display(df.shape)
    
-quit()
+
    
 #Check for index duplicates 
 
@@ -269,6 +269,7 @@ plt.show()
 
 #July
 
+'''
 i = 0  
 #plt.figure(figsize=(300,240))
 
@@ -287,9 +288,87 @@ for df in sensor_list_gf:
    i = i +1 
 plt.legend()
 plt.show()
+'''
 
+
+months_for_15_min_avg = [
+   { 
+   'month_name':'July',
+   'start_date':'2021/7/1',
+   'end_date': '2021/7/31'
+   }, 
+   { 
+   'month_name':'August',
+   'start_date':'2021/8/1',
+   'end_date': '2021/8/31'
+   }, 
+   { 
+   'month_name':'September',
+   'start_date':'2021/9/1',
+   'end_date': '2021/9/30'
+   }, 
+   { 
+   'month_name':'October',
+   'start_date':'2021/10/1',
+   'end_date': '2021/10/31'
+   }, 
+   { 
+   'month_name':'November',
+   'start_date':'2021/11/1',
+   'end_date': '2021/11/30'
+   }, 
+   { 
+   'month_name':'December',
+   'start_date':'2021/12/1',
+   'end_date': '2021/12/31'
+   }, 
+   # these rest of these could prob just be left out since they look like they were checks designed to fix september but september only has 30 days which was the orgininal prob. 
+   { 
+   'month_name':'September 1-10',
+   'start_date':'2021/9/1',
+   'end_date': '2021/9/10'
+   }, 
+    { 
+   'month_name':'September 11-20',
+   'start_date':'2021/9/11',
+   'end_date': '2021/9/20'
+   }, 
+    { 
+   'month_name':'September 21-30',
+   'start_date':'2021/9/21',
+   'end_date': '2021/9/30'
+   }
+]
+
+def min_avg_PM25_months(start_date,end_date,month_name,sensor_list_gf):
+   i = 0  
+#plt.figure(figsize=(300,240))
+
+   plt.title(month_name + '15 min Avg PM2.5 Conc, ug/m3')
+   plt.xlabel("Date")
+   plt.ylabel("PM2.5 micro-grams/m3")
+   plt.xticks(rotation=45) # This was important to limit the number of days displayed on the x axis
+
+   for df in sensor_list_gf:
+      df.head()
+      # Plot the data with Matplotlib Plt
+      x = df['pm25_epa'].loc[start_date:end_date].index
+      y = df['pm25_epa'].loc[start_date:end_date]
+      plt.scatter(x,y,label=name_label[i])
+      #plt.title(sensor_location_names[i])
+      i = i +1 
+   plt.legend()
+   plt.show()
+   return
+
+for i in months_for_15_min_avg:
+   min_avg_PM25_months(i['start_date'],i['end_date'],i['month_name'],sensor_list_gf) 
+
+
+
+'''
+for i in months_for_15_min_avg
 #August
-
 i = 0  
 #plt.figure(figsize=(300,240))
 
@@ -461,7 +540,7 @@ plt.legend(loc='upper right')
 plt.rc('legend', fontsize = 14)
 plt.show()
 
-
+'''
 
 
 
