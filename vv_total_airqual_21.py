@@ -90,8 +90,6 @@ df_butler.head()
 sensor_location_names = ["Butler_Creek","CARB_Cecilville",
 "SAFE_Happy_Camp_Community_Center","CARB_Sawyer","Forks_Of_Salmon","Orleans_KDNR_Outdoor","SAFE_Somes_Bar","SAFE_Sandy_Bar_Creek","SAFE_Swillup_Creek"]
 sensor_location_names[0]
-
-
 #create a list of the needed data frames from the ones selected 
 sensor_dfs = (df_swillup, df_butler,df_cecilville,df_happy_camp_cc,df_sawyer,df_forks,df_kdnr_out,df_somesbar,df_sandybar)
 
@@ -704,8 +702,231 @@ def convert_timedelta(duration):
  #****************************************************************#
  #****************************************************************#
  #****************************************************************#
- #****************************************************************#  
- 
+ #****************************************************************# 
+
+Events_and_concentrations = [
+   { 
+   'Event_level': '3',
+   'concentration_param': 55.5
+   }, 
+   { 
+   'Event_level': '2',
+   'concentration_param': 150.5
+   }, 
+   { 
+   'Event_level': '1',
+   'concentration_param': 250.5
+   }
+   ]
+
+def Tracking_Events_Greater_Than_Given_Perameters(concentration_param,Event_level,sensor_list_gf):
+   print(r'Events greater than '+str(concentration_param)+' micro-grams/$m^3$ - 6, 30 minute intervals out of 48 30 minute intervals (1 day)')  
+   dfs_leveltwo = {}
+   #colors = mpl.colormaps.get_cmap('viridis').resampled(20).colors
+   for k,df in enumerate(sensor_list_gf):
+      # Extreme Event Identification 
+
+      
+      plt.figure(figsize=(10,8))
+      plt.title('Level ' + Event_level + ' Events:  ' + sensor_location_names[k],fontsize = 24,weight = 'bold')
+      plt.xlabel('Date',fontsize=18,weight = 'bold')
+      plt.ylabel('PM2.5 micro-grams/${m^3}$',fontsize=18,weight = 'bold')
+      plt.xticks(rotation=45,fontsize=20) # This was important to limit the number of days displayed on the x axis
+      plt.yticks(fontsize=20)
+      df.head()
+      df_resampled = df.resample('30T').mean()
+      df_resampled['time_stamp'] = df_resampled.index
+      df_resampled.reset_index(drop=True, inplace=True)
+      df_resampled.head()
+      plt.show()
+      
+
+      # Counting 30 min concentrations > 55.5 if present 3 out of 48 hours. 
+      events=pd.DataFrame(columns = ['index','time_stamp','third','fourth'])
+      events.loc[0]=-50
+
+      i =0 
+      #for i,f in enumerate(df_nan['pm2.5_cf_1_a']):
+      for i in df_resampled.index:
+         j=i+47
+         df_resampled.loc[i,'event_count'] = (df_resampled['pm25_epa'].loc[i:j]>concentration_param).sum()
+         
+      df_resampled.describe()
+      df_resampled
+      df_resampled['event_count'].describe()
+      countlist = (df_resampled[df_resampled['event_count']>6].index.values)
+      print(name_label[k])
+      print(countlist)
+      # for i in countlist:
+      #    print({df_resampled['time_stamp'].loc[i]})
+
+      j = 0
+      # Now separate events by 48 - 30 minute intervals
+      for i,f in enumerate(countlist):
+         if i ==0:
+            events.loc[j,'index'] = countlist[i] 
+            events.loc[j,'time_stamp'] = df_resampled['time_stamp'].loc[countlist[i]]
+            j = j+1
+            
+         if countlist[i]> (events['index'].loc[j-1] + 48):
+            events.loc[j,'index'] = countlist[i] 
+            events.loc[j,'time_stamp'] = df_resampled['time_stamp'].loc[countlist[i]]
+            j = j+1
+            
+      # print(events['index'])
+      # for i,f in enumerate(events):
+         # print(i,f['index'].loc[i],f['time_stamp'].loc[i])
+      display(events)
+      
+      # for i,f in enumerate(events):
+      #    print({df_resampled['time_stamp'].loc[f]})
+      consolidated_events=pd.DataFrame(columns = ['index','time_start','time_end','days'])
+      
+      # Identify and isolate consecutive events 
+
+
+    
+    
+      j = 0 
+      for p,f in enumerate(events['index']):
+         #print(p)
+         if p ==0:
+            consolidated_events.loc[j,'index'] = events['index'].loc[p] 
+            consolidated_events.loc[j,'time_start'] = events['time_stamp'].loc[p]
+            j = j+1
+            #print(p,j)
+            continue
+            
+         diff = events['time_stamp'].loc[p] -  events['time_stamp'].loc[p-1]  
+         hours, minutes, seconds = convert_timedelta(diff)
+         total_hours = hours + minutes/60 + seconds/3600
+         
+         if total_hours > 25:
+            consolidated_events.loc[j,'index'] = events['index'].loc[p] 
+            consolidated_events.loc[j,'time_start'] = events['time_stamp'].loc[p]
+            j = j+1
+            #print(p,j,total_hours)
+         else:
+            consolidated_events.loc[j-1,'time_end'] = events['time_stamp'].loc[p]
+            #print(p,j, total_hours)
+      consolidated_events['time_start'] = consolidated_events['time_start'].astype('datetime64')
+      consolidated_events['time_end'] = consolidated_events['time_end'].astype('datetime64')
+
+      for i in consolidated_events.index:
+         
+      
+         if  (consolidated_events['time_end'].loc[i] is pd.NaT):
+            consolidated_events['time_end'].loc[i] = (consolidated_events['time_start'].loc[i]) + (timedelta(days=1)) 
+         diff = consolidated_events['time_end'].loc[i] -  consolidated_events['time_start'].loc[i]  
+         hours, minutes, seconds = convert_timedelta(diff)
+         consolidated_events['days'].loc[i]= (hours + minutes/60 + seconds/3600)/24
+     # my_dict['name']='Nick'
+      display(df_resampled.head())
+      dfs_leveltwo[str(name_label[k])+ '_leveltwo'] =  consolidated_events
+      dfevent = dfs_leveltwo[str(name_label[k])+ '_leveltwo']
+      display(dfevent.head())
+      
+      # Added some commas to because to the end of the three lines below.
+      colors = ['red','purple','green','yellow','orange','brown','black','violet','slategrey','khaki',
+                'gray','silver','whitesmoke','rosybrown','firebrick','darksalmon','sienna','sandybrown',
+                'olivedrab','chartreuse','palegreen','darkgreen','seagreen','navy','peachpuff','darkorange',
+                'navajowhite','darkgoldenrod','lemonchiffon','mediumseagreen','cadetblue','skyblue','dodgerblue','slategray']
+      
+      for i in consolidated_events.index:
+         
+         sz = len(consolidated_events.index)-1
+         # Plot the data with Matplotlib Plt
+         # plot start to end first 
+         
+         if i==0:
+            #endindex = consolidated_events['index'].loc[i] + int((consolidated_events['days'].loc[i])*48)
+            endindex = consolidated_events['index'].loc[sz] + int((consolidated_events['days'].loc[sz])*48) + 48 #Added one extra day at the end
+            x = df_resampled['time_stamp'].loc[consolidated_events['index'].loc[i]:endindex]
+            y = df_resampled['corrected'].loc[consolidated_events['index'].loc[i]:endindex]
+            plt.plot(x,y,label='PM 2.5')
+            x = [df_resampled['time_stamp'].loc[consolidated_events['index'].loc[i]], df_resampled['time_stamp'].loc[endindex]]
+            y = [150.5,150.5]
+            plt.plot(x,y,linewidth=1, linestyle='dashed',label = 'Level 2 Criteria Concentration')
+
+         begindex = consolidated_events['index'].loc[i]
+         endindex = begindex + int((consolidated_events['days'].loc[i])*48)
+         
+         x = [df_resampled['time_stamp'].loc[begindex],df_resampled['time_stamp'].loc[begindex]]
+         y = [0,800]   
+         plt.plot(x,y,linewidth=1,color = colors[i])
+         #color = (0, i / 20.0, 0, 1)
+         #color=plt.cm.RdYlBu(i)
+         
+         x= [df_resampled['time_stamp'].loc[begindex],df_resampled['time_stamp'].loc[endindex]]
+         y= [800,800]
+         plt.plot(x,y,linewidth=1,color =  colors[i])
+
+         
+         
+         x = [df_resampled['time_stamp'].loc[endindex],df_resampled['time_stamp'].loc[endindex]]
+         y = [0,800]
+         plt.plot(x,y,linewidth=1,color =  colors[i],label=f'Event {i +1}')
+
+      plt.legend(loc='upper right')
+      plt.rc('legend', fontsize = 14)
+      plt.show()
+      
+      
+      
+      for i,dataf in enumerate(dfevent['index']):
+            dfevent['slope_first'] = -10.10
+            dfevent['slope_second'] = -10.10
+            dfevent['slope_third'] = -10.10
+            dfevent['slope_fourth'] = -10.10
+            
+            if dfevent['index'].loc[i]<= 6:
+               dfevent.loc[i] = np.nan
+               continue
+               
+               #print(slope)
+            if dfevent['index'].loc[i]<=12:
+               dfevent.loc[i,'slope_first'] = (df_resampled['corrected'].loc[6] -df_resampled['corrected'].loc[0])/((6-0)*30)
+               continue
+            if dfevent['index'].loc[i]<=18:
+               dfevent.loc[i,'slope_first'] = ((df_resampled['corrected'].loc[6] -df_resampled['corrected'].loc[0])/((6-0)*30))
+               dfevent.loc[i,'slope_second'] = (df_resampled['corrected'].loc[12] -df_resampled['corrected'].loc[0])/((12-0)*30)
+               continue
+            if dfevent['index'].loc[i]<=24:
+               dfevent.loc[i,'slope_third'] = (df_resampled['corrected'].loc[18] -df_resampled['corrected'].loc[0])/((18-0)*30)
+               dfevent.loc[i,'slope_second'] = (df_resampled['corrected'].loc[12] -df_resampled['corrected'].loc[0])/((12-0)*30)
+               dfevent.loc[i,'slope_first'] = (df_resampled['corrected'].loc[6] -df_resampled['corrected'].loc[0])/((6-0)*30)
+               continue
+            if dfevent['index'].loc[i]>24:
+               ind = dfevent['index'].loc[i]
+               dfevent.loc[i,'slope_fourth'] = (df_resampled['corrected'].loc[ind] -df_resampled['corrected'].loc[ind-24])/((24-0)*30)
+               dfevent.loc[i,'slope_third'] = (df_resampled['corrected'].loc[ind] -df_resampled['corrected'].loc[ind-18])/((18-0)*30)
+               dfevent.loc[i,'slope_second'] = (df_resampled['corrected'].loc[ind] -df_resampled['corrected'].loc[ind-12])/((12-0)*30)
+               dfevent.loc[i,'slope_first'] = (df_resampled['corrected'].loc[ind] -df_resampled['corrected'].loc[ind-6])/((6-0)*30)
+      print(name_label[k])
+      display(dfevent)
+      dfs_leveltwo[str(name_label[k])+ '_leveltwo'] = dfevent.copy('deep')
+               
+      #= dfs_leveltwo.append{str(name_label[k])+ '_leveltwo': consolidated_events}
+   #print(dfs_leveltwo['SAFE_Swillup_Creek_leveltwo'])
+   dfs_leveltwo.keys()
+   print(dfs_leveltwo['SAFE_Swillup_Creek_leveltwo'])
+   display(dfevent)
+   return
+
+
+# Calling the func for graphing event concentrations using a list of the level and associated concentration
+for i in Events_and_concentrations:
+   Tracking_Events_Greater_Than_Given_Perameters(i['concentration_param'],i['Event_level'],sensor_list_gf)
+quit()
+
+ # Header needs to have a var. line 720 
+ # line 738 air qual paramm
+ # needs sensor_list_gf
+ #needs pd
+
+'''
+
+ ###Start of block 
 print(r'Eents greater than 55.5 micro-grams/$m^3$ - 6, 30 minute intervals out of 48 30 minute intervals (1 day)')  
 dfs_leveltwo = {}
 #colors = mpl.colormaps.get_cmap('viridis').resampled(20).colors
@@ -812,9 +1033,10 @@ for k,df in enumerate(sensor_list_gf):
    dfevent = dfs_leveltwo[str(name_label[k])+ '_leveltwo']
    display(dfevent.head())
    
-   colors = ['red','purple','green','yellow','orange','brown','black','violet','slategrey','khaki'
-             'gray','silver','whitesmoke','rosybrown','firebrick','darksalmon','sienna','sandybrown'
-             'olivedrab','chartreuse','palegreen','darkgreen','seagreen','navy','peachpuff','darkorange'
+   # Added some commas to because to the end of the three lines below.
+   colors = ['red','purple','green','yellow','orange','brown','black','violet','slategrey','khaki',
+             'gray','silver','whitesmoke','rosybrown','firebrick','darksalmon','sienna','sandybrown',
+             'olivedrab','chartreuse','palegreen','darkgreen','seagreen','navy','peachpuff','darkorange',
              'navajowhite','darkgoldenrod','lemonchiffon','mediumseagreen','cadetblue','skyblue','dodgerblue','slategray']
    
    for i in consolidated_events.index:
@@ -896,12 +1118,12 @@ for k,df in enumerate(sensor_list_gf):
 dfs_leveltwo.keys()
 print(dfs_leveltwo['SAFE_Swillup_Creek_leveltwo'])
 display(dfevent)
-
+#end block 
  #****************************************************************#
  #****************************************************************#
  #****************************************************************#
  #****************************************************************#  
-  
+quit()  
 
    
 print(r'Eents greater than 150.5 micro-grams/$m^3$ - 6, 30 minute intervals out of 48 30 minute intervals (1 day)')  
@@ -1294,7 +1516,7 @@ dfs_leveltwo.keys()
 print(dfs_leveltwo['SAFE_Swillup_Creek_leveltwo'])
 display(dfevent)
 
-
+'''
 
  #****************************************************************#
  #****************************************************************#
