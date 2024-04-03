@@ -89,6 +89,8 @@ df_butler.head()
 #Create sensor location names for later use in graphs 
 sensor_location_names = ["Butler_Creek","CARB_Cecilville",
 "SAFE_Happy_Camp_Community_Center","CARB_Sawyer","Forks_Of_Salmon","Orleans_KDNR_Outdoor","SAFE_Somes_Bar","SAFE_Sandy_Bar_Creek","SAFE_Swillup_Creek"]
+
+#used as a check 
 sensor_location_names[0]
 #create a list of the needed data frames from the ones selected 
 sensor_dfs = (df_swillup, df_butler,df_cecilville,df_happy_camp_cc,df_sawyer,df_forks,df_kdnr_out,df_somesbar,df_sandybar)
@@ -100,12 +102,12 @@ sensor_dfs = (df_swillup, df_butler,df_cecilville,df_happy_camp_cc,df_sawyer,df_
 
       
    
-   
+# this is another visual check    
 for df in sensor_dfs:
    display(df.describe())
 
 
-
+# another visual check to find begin and end of logged date time
 for i,df in enumerate(sensor_dfs):
    display(sensor_location_names[i])
    display(df.datetime_utc.min(),df.datetime_utc.max())
@@ -143,14 +145,17 @@ def get_difference(startdate, enddate):
     diff = enddate - startdate
     return diff.days
 #initializing dates
+# this was the first and last date of the data set. -- hard coded 
 startdate = date(2021, 7, 1)
 enddate = date(2021, 12, 31)
 #storing the result and calling the function
 days = get_difference(startdate, enddate)+1
 #displaying the result
+
 print(f'Difference is {days} days')
 print(f'total 15 minute intervals of: {days*24*4}')
 
+#the output from days*24*4 is used to create a time series that starts juy 1 and is every 15 min 
 #reindex - generate 15 minute interval time index
 
 sensor_list_df =  (df_butler,df_cecilville,df_happy_camp_cc,df_sawyer,df_forks,df_kdnr_out,df_somesbar,df_sandybar,df_swillup)
@@ -159,20 +164,27 @@ date_index2 = pd.date_range('2021/07/01', periods=17664, freq='15T')
 sensor_list_gf = (df_butler,df_cecilville,df_happy_camp_cc,df_sawyer,df_forks,df_kdnr_out,df_somesbar,df_sandybar,df_swillup)
 name_label = ["Butler_Creek","CARB_Cecilville",
 "SAFE_Happy_Camp_Community_Center","CARB_Sawyer","Forks_Of_Salmon","Orleans_KDNR_Outdoor","SAFE_Somes_Bar","SAFE_Sandy_Bar_Creek","SAFE_Swillup_Creek"]
+#this short list was for the poster.
 short_list = (df_butler, df_forks,df_kdnr_out,df_somesbar)
 short_name = ["Butler Creek","Forks Of Salmon","Orleans","Somes_Bar" ]
 for df in sensor_list_df:
      # setting first name as index column
+     # indexing by time here. 
+     #re indexing by the 15 min time series helps identify missing time stamps. 
    df.set_index(["datetime_utc"], inplace = True,append = False, drop = True)
    df = df.reindex(date_index2)
+   # this is a check to see how many of the 15 min intervals have N/A data.
    checkna = df['longitude'].isna()
+   #returns number on none values. 
    print(checkna.value_counts())
 
 
-   
+#    
 for df in sensor_list_df:
+   #these colums already exsisted for 2021 because it was pre cleaned 2022 dose this manually with a data cleaning code. 
      # setting first name as index column
    df['check'] = (df['ab_deviation_absolute'] > 5.0) & (df['ab_deviation_fraction'] > 0.7)
+   # createsa  col in df called check that either T/F
    display(df.head())
    display(df['check'].value_counts())
    
@@ -181,6 +193,8 @@ for df in sensor_list_df:
 #set average is NaN if check if True
 for df in sensor_list_df:
    #checking the location where check is True
+
+   # this is there to check if ab deviation ok col yielding same result as the check coll created in previous for loop. 
    display(df['ab_deviation_OK'].loc[df[df['check']==True].index.values])
    display(df['pm25_avg'].loc[df[df['check']==True].index.values])
    #No need for the code below because the data already had deviation check
@@ -188,6 +202,7 @@ for df in sensor_list_df:
    #df.loc[df.check == True,'pm25_avg'] = np.nan
 
 #EPA correction equation. The PM values were CF Atm. Need to change to PM CF= 1 for better accuracy
+# No need to update the PM source value
 for df in sensor_list_df:
    df['corrected'] = 0.534*(1*(df['pm25_avg']))-0.0844*df['humidity']+5.604
    
@@ -200,7 +215,7 @@ for i, df in enumerate(sensor_list_df):
    #dataframe with negative corrections
    df_neg_corrected=df[(df['corrected'] < 0)]
    df_neg_corrected.plot.scatter('pm25_avg','corrected', title=name_label[i])
-
+# the previous correction created negative values for very low PM 25
 for i, df in enumerate(sensor_list_df):
    #Changing the negative corrected values to zero
    df.loc[df.corrected < 0,'corrected'] = 0
@@ -208,6 +223,8 @@ for i, df in enumerate(sensor_list_df):
    print(df['corrected'].where(df['corrected'] < 0).count())
    display(df.head())
    #Change index time from utc to local time (PST)
+
+   #THIS PART OF CODE NEEDS TO BE LOOKED AT TO FIX BUG
    df.index=df.index.tz_localize('UTC')
    display(df.head())
    df.index=df.index.tz_convert('US/Pacific')
@@ -216,6 +233,7 @@ for i, df in enumerate(sensor_list_df):
 print(df_kdnr_out.head)
 x = df_kdnr_out.loc['2021-09-06 18:30:00-07:00':'2021-09-09 18:30:00-07:00']
 y = df_kdnr_out['corrected'].loc['2021-09-06 18:30:00-07:00':'2021-09-09 18:30:00-07:00']
+# How many of the data points were above concentration of 150 
 temp = (df_kdnr_out['corrected'].loc['2021-09-06 18:30:00-07:00':'2021-09-09 18:30:00-07:00']>150)
 print(temp.shape)
 
@@ -229,6 +247,8 @@ print(temp.shape)
 
 #Using Valerie's Template (For LSAMP and UCLA Poster) 
 
+#
+
 i =0 
 plt.figure(figsize=(15,10))
 plt.title('July through December, 2021.  3-hour Avg PM2.5 Conc',fontsize = 24,weight = 'bold')
@@ -241,10 +261,13 @@ plt.yticks(size = 5,fontsize=20)
 plt.tick_params('both', length=20, width=2, which='major')
 df_temp = pd.DataFrame()
 for dfgraph in short_list:
+   # resample evry 3H creates new moving ave 
    df_temp['corrected'] = dfgraph['corrected'].resample('3H').mean()
    display(df_temp)
     # Plot the data with Matplotlib Plt
+    # this retruns time 
    x = df_temp['corrected'].loc['2021-01-01':'2021-12-31'].index
+   # this returns coresponding concentration at that time.
    y = df_temp['corrected'].loc['2021-01-01':'2021-12-31']
    plt.plot(x,y,label=short_name[i])
    #plt.title(sensor_location_names[i])
@@ -253,7 +276,6 @@ for dfgraph in short_list:
 plt.legend(loc='upper right')
 plt.rc('legend', fontsize = 20)
 plt.show()
-
 
 
 
@@ -337,6 +359,8 @@ months_for_15_min_avg = [
    'end_date': '2021/9/30'
    }
 ]
+
+# this is mostly for visualization to see change in the short term.
 
 def min_avg_PM25_months(start_date,end_date,month_name,sensor_list_gf):
    i = 0  
@@ -719,6 +743,9 @@ Events_and_concentrations = [
    }
    ]
 
+
+
+
 def Tracking_Events_Greater_Than_Given_Perameters(concentration_param,Event_level,sensor_list_gf):
    print(r'Events greater than '+str(concentration_param)+' micro-grams/$m^3$ - 6, 30 minute intervals out of 48 30 minute intervals (1 day)')  
    dfs_leveltwo = {}
@@ -735,25 +762,33 @@ def Tracking_Events_Greater_Than_Given_Perameters(concentration_param,Event_leve
       plt.yticks(fontsize=20)
       df.head()
       df_resampled = df.resample('30T').mean()
+      # created new col called time stamp from the index.
       df_resampled['time_stamp'] = df_resampled.index
+      # reset the index so that the index stats from 0. No longer a time series. Int index starting from 0.
       df_resampled.reset_index(drop=True, inplace=True)
+      # visualize 
       df_resampled.head()
       plt.show()
       
 
-      # Counting 30 min concentrations > 55.5 if present 3 out of 48 hours. 
+      # Counting 30 min concentrations > 55.5 if present 3 hours out of 48 * 30 min intervals. 
+      # we delcare an vents data frame that has these cols 
       events=pd.DataFrame(columns = ['index','time_stamp','third','fourth'])
+      # initialize first row to be - 50
       events.loc[0]=-50
 
       i =0 
       #for i,f in enumerate(df_nan['pm2.5_cf_1_a']):
       for i in df_resampled.index:
+         # its looking forword to determine 
          j=i+47
+         # 
          df_resampled.loc[i,'event_count'] = (df_resampled['pm25_epa'].loc[i:j]>concentration_param).sum()
          
       df_resampled.describe()
       df_resampled
       df_resampled['event_count'].describe()
+      # looks to see if greater t
       countlist = (df_resampled[df_resampled['event_count']>6].index.values)
       print(name_label[k])
       print(countlist)
@@ -783,6 +818,7 @@ def Tracking_Events_Greater_Than_Given_Perameters(concentration_param,Event_leve
       consolidated_events=pd.DataFrame(columns = ['index','time_start','time_end','days'])
       
       # Identify and isolate consecutive events 
+
 
 
     
@@ -917,6 +953,7 @@ def Tracking_Events_Greater_Than_Given_Perameters(concentration_param,Event_leve
 # Calling the func for graphing event concentrations using a list of the level and associated concentration
 for i in Events_and_concentrations:
    Tracking_Events_Greater_Than_Given_Perameters(i['concentration_param'],i['Event_level'],sensor_list_gf)
+   quit()
 quit()
 
  # Header needs to have a var. line 720 
