@@ -422,6 +422,7 @@ def Tracking_Events_Greater_Than_Given_Perameters(concentration_param,Event_leve
 
          #Changes made By jordan.
          # check if the start index is greater than 6 intervals greater than 0
+
          if start_index > 6:
                 # if it is, set the start index to 6 intervals before the current index
                 start_index -= 6
@@ -450,6 +451,7 @@ def Tracking_Events_Greater_Than_Given_Perameters(concentration_param,Event_leve
 
       print(name_label[k])
       print(countlist)
+
       # for i in countlist:
       #    print({df_resampled['time_stamp'].loc[i]})
 
@@ -481,6 +483,8 @@ def Tracking_Events_Greater_Than_Given_Perameters(concentration_param,Event_leve
       j = 0 
       for p,f in enumerate(events['index']):
          #print(p)
+
+         ##
          if p ==0:
             consolidated_events.loc[j,'index'] = events['index'].loc[p] 
             consolidated_events.loc[j,'time_start'] = events['time_stamp'].loc[p]
@@ -498,6 +502,8 @@ def Tracking_Events_Greater_Than_Given_Perameters(concentration_param,Event_leve
             j = j+1
             #print(p,j,total_hours)
          else:
+
+
             consolidated_events.loc[j-1,'time_end'] = events['time_stamp'].loc[p]
             #print(p,j, total_hours)
       # Convert the datetime columns to datetime64[ns]
@@ -506,11 +512,14 @@ def Tracking_Events_Greater_Than_Given_Perameters(concentration_param,Event_leve
       consolidated_events['time_start'] = pd.to_datetime(consolidated_events['time_start'])
       consolidated_events['time_end'] = pd.to_datetime(consolidated_events['time_end'])
 
+      #this For loop could be causing some errors.
       for i in consolidated_events.index:
          
       
          if  (consolidated_events['time_end'].loc[i] is pd.NaT):
             consolidated_events['time_end'].loc[i] = (consolidated_events['time_start'].loc[i]) + (timedelta(days=1)) 
+
+
          diff = consolidated_events['time_end'].loc[i] -  consolidated_events['time_start'].loc[i]  
          hours, minutes, seconds = convert_timedelta(diff)
          consolidated_events['days'].loc[i]= (hours + minutes/60 + seconds/3600)/24
@@ -543,19 +552,55 @@ def Tracking_Events_Greater_Than_Given_Perameters(concentration_param,Event_leve
          
          if i==0:
             #endindex = consolidated_events['index'].loc[i] + int((consolidated_events['days'].loc[i])*48)
+
             endindex = consolidated_events['index'].loc[sz] + int((consolidated_events['days'].loc[sz])*48) + 48 #Added one extra day at the end
 
             x = df_resampled['time_stamp'].loc[consolidated_events['index'].loc[i]:endindex]
             y = df_resampled['corrected'].loc[consolidated_events['index'].loc[i]:endindex]
             plt.plot(x,y,label='PM 2.5')
+
             x = [df_resampled['time_stamp'].loc[consolidated_events['index'].loc[i]], df_resampled['time_stamp'].loc[endindex]]
             #Below is the threshold line. 
             y = [concentration_param,concentration_param]
 
             plt.plot(x,y,linewidth=1, linestyle='dashed',label = 'Level '+ Event_level +' Criteria Concentration')
 
-         begindex = consolidated_events['index'].loc[i]
-         endindex = begindex + int((consolidated_events['days'].loc[i])*48)
+         
+
+         ## this may be casuing issues with our graph because the start of an event is not defined by the first event that occurs when 
+
+         
+
+         start_index = consolidated_events['index'].loc[i] 
+
+         end_index = start_index + int((consolidated_events['days'].loc[i])*48) #48 because 30 min intervals 
+
+         #here we should iterate through d_f starting at the indes 24 * 30 min intervals before the event start and find the first event that exceeds the concentration value and set thaht as start 
+         start1 = max(0, start_index - 24)
+         end1 = min(len(df_resampled) - 1, end_index + 23)
+
+         for a in range(24):
+            start1 += a
+            if df_resampled['corrected'].loc[start1+a] >= concentration_param: 
+               break
+
+         for b in range(23):
+            end1 -= b
+            if df_resampled['corrected'].loc[end1-b] >= concentration_param: 
+               break
+
+
+         begindex = start1
+         # if the end index is greater than the length of the data frame, set it to the last index
+         endindex = end1
+
+         print(begindex)
+         print(endindex)
+
+         print(df_resampled['time_stamp'].loc[begindex])
+         print(df_resampled['time_stamp'].loc[endindex])
+
+         
          
          x = [df_resampled['time_stamp'].loc[begindex],df_resampled['time_stamp'].loc[begindex]]
          y = [0,800]   
@@ -569,12 +614,15 @@ def Tracking_Events_Greater_Than_Given_Perameters(concentration_param,Event_leve
          
          x = [df_resampled['time_stamp'].loc[endindex],df_resampled['time_stamp'].loc[endindex]]
          y = [0,800]
-         plt.plot(x,y,linewidth=1,color =  colors[i],label=f'Event {i +1}')
+         # Added This Label
+         labels = f"Event {i + 1}, Duration {consolidated_events['days'].loc[i]}, start{consolidated_events['time_start'].loc[i]} :end {consolidated_events['time_end'].loc[i]}"
+         plt.plot(x,y,linewidth=1,color =  colors[i],label=labels)
 
       plt.legend(loc='upper right')
       plt.rc('legend', fontsize = 14)
       plt.show()
       
+
       for i,dataf in enumerate(dfevent['index']):
             dfevent['slope_first'] = -10.10
             dfevent['slope_second'] = -10.10
