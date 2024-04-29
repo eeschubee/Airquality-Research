@@ -331,11 +331,11 @@ def Tracking_Events_Greater_Than_Given_Perameters(concentration_param,Event_leve
 
       
       plt.figure(figsize=(10,8))
-      plt.title('Level ' + Event_level + ' Events:  ' + sensor_location_names[k],fontsize = 24,weight = 'bold')
-      plt.xlabel('Date',fontsize=18,weight = 'bold')
-      plt.ylabel('PM2.5 micro-grams/${m^3}$',fontsize=18,weight = 'bold')
-      plt.xticks(rotation=45,fontsize=20) # This was important to limit the number of days displayed on the x axis
-      plt.yticks(fontsize=20)
+      plt.title('Level ' + Event_level + ' Events:  ' + sensor_location_names[k],fontsize = 20,weight = 'bold')
+      plt.xlabel('Date',fontsize=10,weight = 'bold')
+      plt.ylabel('PM2.5 micro-grams/${m^3}$',fontsize=10,weight = 'bold')
+      plt.xticks(rotation=45,fontsize=10) # This was important to limit the number of days displayed on the x axis
+      plt.yticks(fontsize=10)
       df.head()
       df_resampled = pd.DataFrame()
       df_resampled['pm25_epa'] = df['pm25_epa'].resample('30min').mean()
@@ -651,13 +651,64 @@ def Tracking_Events_Greater_Than_Given_Perameters(concentration_param,Event_leve
    
    # create a dictionary of number of events for each sensor location
    num_events = {}
+   events_sum = {}
+   events_min = {}
+   events_max = {}
+   events_avg = {}
    
+   # need to add more to create data table for valeries poster
+   '''
+   print("Level 2 - items ")
+   print("#####")
+   print(dfs_leveltwo.items())
+   print("Lebel 2 ")
+   print("######")
+   print(dfs_leveltwo)
+   print("######")
+   
+   dfs_leveltwo.keys()
+   '''
    # count number of events for each sensor location if they have a start time
    for key, value in dfs_leveltwo.items():
       num_events[key] = value['time_start'].count()
+      events_sum[key] = value['days'].sum()
+      events_min[key] = value['days'].min()
+      events_max[key] = value['days'].max()
+      events_avg[key] = value['days'].mean()
+   '''
+   print("###### Events")
+   print(num_events)
+   print("###### SUm ")
+   print(events_sum)
+   print("###### MAx")
+   print(events_max)
+   print("###### MIN")
+   print(events_min)
+   print("###### MEan")
+   print(events_avg)
+   
+   '''
+      
         
    # create excel file with number of events for each sensor location
+   # Create DataFrames for each dictionary
    num_events_df = pd.DataFrame(num_events.items(), columns = ['Sensor Location', 'Number of Events'])
+   num_events_df = pd.DataFrame(num_events.items(), columns=['Sensor Location', 'Number of Events'])
+   events_sum_df = pd.DataFrame(events_sum.items(), columns=['Sensor Location', 'Sum of Days'])
+   events_min_df = pd.DataFrame(events_min.items(), columns=['Sensor Location', 'Minimum Days'])
+   events_max_df = pd.DataFrame(events_max.items(), columns=['Sensor Location', 'Maximum Days'])
+   events_avg_df = pd.DataFrame(events_avg.items(), columns=['Sensor Location', 'Average Days'])
+   
+   
+   # Merge DataFrames on 'Sensor Location'
+   merged_df = num_events_df.merge(events_sum_df, on='Sensor Location') \
+                          .merge(events_min_df, on='Sensor Location') \
+                          .merge(events_max_df, on='Sensor Location') \
+                          .merge(events_avg_df, on='Sensor Location')
+    
+   print(merged_df)
+   merged_df.to_excel('Event_Info_chart'+Event_level+'.xlsx', index = False)
+   
    num_events_df.to_excel('Number_of_Events_Level_'+Event_level+'.xlsx', index = False)
 
    return
