@@ -545,8 +545,18 @@ def Tracking_Events_Greater_Than_Given_Perameters(concentration_param,Event_leve
       '''
 
       for i in consolidated_events.index:
+
+
          
          sz = len(consolidated_events.index)-1
+
+
+         #Issues where arrising for empty consolidated events. 
+         if sz <=0  :
+            continue
+
+
+
          # Plot the data with Matplotlib Plt
          # plot start to end first 
          
@@ -580,14 +590,17 @@ def Tracking_Events_Greater_Than_Given_Perameters(concentration_param,Event_leve
          end1 = min(len(df_resampled) - 1, end_index + 23)
 
          for a in range(24):
-            start1 += a
-            if df_resampled['corrected'].loc[start1+a] >= concentration_param: 
+            
+            if df_resampled['corrected'].loc[start1] >= concentration_param: 
                break
+            start1 += 1
 
          for b in range(23):
-            end1 -= b
-            if df_resampled['corrected'].loc[end1-b] >= concentration_param: 
+            
+            if df_resampled['corrected'].loc[end1] >= concentration_param:
+               
                break
+            end1 -= 1
 
 
          begindex = start1
@@ -615,12 +628,26 @@ def Tracking_Events_Greater_Than_Given_Perameters(concentration_param,Event_leve
          x = [df_resampled['time_stamp'].loc[endindex],df_resampled['time_stamp'].loc[endindex]]
          y = [0,800]
          # Added This Label
-         labels = f"Event {i + 1}, Duration {consolidated_events['days'].loc[i]}, start{consolidated_events['time_start'].loc[i]} :end {consolidated_events['time_end'].loc[i]}"
+
+         #More readable. 
+         lable_start_date = consolidated_events['time_start'].loc[i].strftime("%b %d, %Y, %I:%M %p")
+         lable_end_date =  consolidated_events['time_end'].loc[i].strftime("%b %d, %Y, %I:%M %p")
+         duration = "{:.2f}".format(consolidated_events['days'].loc[i])
+
+         labels = f"Evnt {i + 1}, Dur {duration}, {lable_start_date} : {lable_end_date}"
+
          plt.plot(x,y,linewidth=1,color =  colors[i],label=labels)
 
       plt.legend(loc='upper right')
       plt.rc('legend', fontsize = 14)
-      plt.show()
+
+
+      table_name = f"{Event_level}_{concentration_param}_{name_label[k]}.png"
+
+      plt.savefig(table_name)
+      plt.close()
+      #plt.show()
+
       
 
       for i,dataf in enumerate(dfevent['index']):
@@ -667,7 +694,7 @@ def Tracking_Events_Greater_Than_Given_Perameters(concentration_param,Event_leve
 # Calling the func for graphing event concentrations using a list of the level and associated concentration
 for i in Events_and_concentrations:
    Tracking_Events_Greater_Than_Given_Perameters(i['concentration_param'],i['Event_level'],sensor_list_gf)
-   quit()
+   
 quit()
 
  # Header needs to have a var. line 720 
