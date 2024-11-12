@@ -1,0 +1,29 @@
+Last login: Sun Apr  7 20:19:19 on ttys001
+erikschubert@Eriks-MacBook-Air ~ % which python33
+python33 not found
+erikschubert@Eriks-MacBook-Air ~ % which python3 
+/Library/Frameworks/Python.framework/Versions/3.12/bin/python3
+erikschubert@Eriks-MacBook-Air ~ % /Library/Frameworks/Python.framework/Versions/3.9/bin/python3
+Python 3.9.13 (v3.9.13:6de2ca5339, May 17 2022, 11:37:23) 
+[Clang 13.0.0 (clang-1300.0.29.30)] on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+>>> quit()
+erikschubert@Eriks-MacBook-Air ~ % cd Documents
+erikschubert@Eriks-MacBook-Air Documents % makedir PythonVenvAirQual
+zsh: command not found: makedir
+erikschubert@Eriks-MacBook-Air Documents % mkdir PythonVenvAirQual
+erikschubert@Eriks-MacBook-Air Documents % cd PythonVenvAirQual
+erikschubert@Eriks-MacBook-Air PythonVenvAirQual % /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 -m venv virtualenv39
+erikschubert@Eriks-MacBook-Air PythonVenvAirQual % ls
+virtualenv39
+erikschubert@Eriks-MacBook-Air PythonVenvAirQual % ls virtualenv39 
+bin		include		lib		pyvenv.cfg
+erikschubert@Eriks-MacBook-Air PythonVenvAirQual % ls virtualenv39/bin 
+Activate.ps1	activate.csh	pip		pip3.9		python3
+activate	activate.fish	pip3		python		python3.9
+erikschubert@Eriks-MacBook-Air PythonVenvAirQual % source virtualenv39/bin/activate
+(virtualenv39) erikschubert@Eriks-MacBook-Air PythonVenvAirQual %  
+
+
+/Users/erikschubert/Desktop/AirQualityResearch/2021 Post June 10/BAR GRAPH PLOTS
+
